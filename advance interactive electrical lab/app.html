@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Advanced Virtual Electrical Lab</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700&family=Poppins:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+body{
+    margin:0;
+    height:100vh;
+    overflow:hidden;
+    font-family:'Poppins', sans-serif;
+    background: radial-gradient(circle at 20% 20%, #1e1b4b, #0f172a 60%);
+    color:white;
+}
+
+#particles{
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    z-index:-1;
+}
+
+.logo-text{
+    background:linear-gradient(90deg,#6366f1,#06b6d4,#a855f7);
+    background-size:200% auto;
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+    animation:shine 4s linear infinite;
+}
+@keyframes shine{
+    from{background-position:0%;}
+    to{background-position:200%;}
+}
+
+.glass{
+    background:rgba(255,255,255,0.05);
+    backdrop-filter:blur(20px);
+    border:1px solid rgba(255,255,255,0.1);
+}
+
+.component-slot{
+    min-width:120px;
+    height:140px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    border-radius:20px;
+    transition:0.3s;
+}
+.component-slot:hover{
+    transform:translateY(-6px) scale(1.05);
+}
+
+.bulb-on{
+    animation:pulse 1.2s infinite alternate;
+}
+@keyframes pulse{
+    from{transform:scale(1);}
+    to{transform:scale(1.1);}
+}
+
+.wire-flow{
+    stroke-dasharray:10;
+    animation:flow 0.6s linear infinite;
+}
+@keyframes flow{
+    from{stroke-dashoffset:20;}
+    to{stroke-dashoffset:0;}
+}
+
+::-webkit-scrollbar{height:6px;width:6px;}
+::-webkit-scrollbar-thumb{background:#6366f1;border-radius:10px;}
+
+.resistor-on{
+    animation:heatPulse 1s infinite alternate;
+    filter: drop-shadow(0 0 10px orange);
+}
+
+@keyframes heatPulse{
+    from{ transform:scale(1); opacity:0.8; }
+    to{ transform:scale(1.08); opacity:1; }
+}
+/* BATTERY ACTIVE */
+.battery-on{
+    animation:batteryPulse 1.2s infinite alternate;
+    filter:drop-shadow(0 0 12px #22c55e);
+}
+@keyframes batteryPulse{
+    from{transform:scale(1);}
+    to{transform:scale(1.08);}
+}
+
+/* BULB ACTIVE */
+.bulb-dynamic{
+    animation:bulbPulse 0.8s infinite alternate;
+}
+@keyframes bulbPulse{
+    from{transform:scale(1); opacity:0.85;}
+    to{transform:scale(1.15); opacity:1;}
+}
+
+/* RESISTOR ACTIVE */
+.resistor-on{
+    animation:heatPulse 0.8s infinite alternate;
+    filter:drop-shadow(0 0 10px orange);
+}
+@keyframes heatPulse{
+    from{transform:scale(1);}
+    to{transform:scale(1.1);}
+}
+
+/* FUSE ACTIVE */
+.fuse-on{
+    animation:fuseGlow 1s infinite alternate;
+    filter:drop-shadow(0 0 8px #f87171);
+}
+@keyframes fuseGlow{
+    from{opacity:0.7;}
+    to{opacity:1;}
+}
+
+</style>
+</head>
+
+<body>
+
+<canvas id="particles"></canvas>
+
+<header class="text-center p-6">
+<div class="flex justify-center items-center gap-3">
+<svg width="40" height="40" viewBox="0 0 24 24">
+<path d="M13 2L3 14H11L10 22L20 10H12L13 2Z" fill="#6366f1"/>
+</svg>
+<h1 class="text-4xl font-bold logo-text tracking-widest" style="font-family:'Orbitron', sans-serif;">
+Advanced Virtual Electrical Lab
+</h1>
+</div>
+</header>
+
+<div class="container mx-auto grid grid-cols-12 gap-6 px-6 h-[85vh]">
+
+<!-- LEFT PANEL -->
+<div class="col-span-3 glass p-6 rounded-3xl overflow-y-auto space-y-4">
+
+<h3 class="font-bold">Battery Voltage (V)</h3>
+<input id="voltageInput" type="number" value="12" min="1" max="500"
+class="w-full p-2 rounded text-black">
+<button onclick="addBattery()" class="w-full bg-indigo-600 py-2 rounded">
+Add Battery
+</button>
+
+<h3 class="font-bold mt-6">Resistor (Ω)</h3>
+<input id="resistanceInput" type="number" value="10" min="1" max="1000"
+class="w-full p-2 rounded text-black">
+<button onclick="addResistor()" class="w-full bg-orange-500 py-2 rounded">
+Add Resistor
+</button>
+
+<h3 class="font-bold mt-6">Load Resistance (Ω)</h3>
+<input id="loadInput" type="number" value="20" min="1" max="1000"
+class="w-full p-2 rounded text-black">
+<button onclick="addBulb()" class="w-full bg-yellow-500 py-2 rounded">
+Add Load
+</button>
+
+<h3 class="font-bold mt-6">Fuse Rating (A)</h3>
+<input id="fuseInput" type="number" value="1" min="0.1" step="0.1"
+class="w-full p-2 rounded text-black">
+<button onclick="addFuse()" class="w-full bg-red-500 py-2 rounded">
+Add Fuse
+</button>
+
+<button onclick="recordData()"
+class="w-full bg-emerald-600 py-2 rounded mt-6">
+Record Data
+</button>
+
+</div>
+
+<!-- RIGHT PANEL -->
+<div class="col-span-9 glass p-6 rounded-3xl flex flex-col">
+
+<div class="flex justify-between items-center mb-4">
+<div class="text-sm opacity-70">Circuit Controls</div>
+<button onclick="togglePower()" id="powerBtn"
+class="bg-white text-black px-6 py-2 rounded-xl font-bold shadow-lg transition hover:scale-105">
+⏻ Power
+</button>
+</div>
+
+<div class="relative h-44 flex items-center">
+<svg class="absolute w-full h-44 pointer-events-none">
+<line id="wire" x1="0" y1="88" x2="100%" y2="88"
+stroke="#64748b" stroke-width="6"/>
+</svg>
+
+<div id="slotWrapper" class="relative z-10 w-full overflow-x-auto">
+<div id="slots" class="flex gap-6 min-w-max pr-10"></div>
+</div>
+</div>
+
+<div class="grid grid-cols-3 gap-6 mt-6">
+<div class="glass p-4 rounded-xl">
+<p>Voltage</p>
+<p id="voltageMeter" class="text-2xl" style="font-family:'JetBrains Mono', monospace; letter-spacing:1px;">0 V</p>
+</div>
+<div class="glass p-4 rounded-xl">
+<p>Current</p>
+<p id="currentMeter" class="text-2xl" style="font-family:'JetBrains Mono', monospace; letter-spacing:1px;">0 A</p>
+</div>
+<div class="glass p-4 rounded-xl">
+<p>Status</p>
+<p id="status">Add components.</p>
+</div>
+</div>
+
+<div class="glass p-4 rounded-xl mt-6 flex flex-col h-52">
+<h3 class="font-bold mb-2">Experiment History</h3>
+<div id="logBox"
+class="flex-1 overflow-y-auto text-xs space-y-1 pr-2"></div>
+</div>
+
+</div>
+</div>
+
+<script>
+
+/* Background particles */
+const canvas=document.getElementById("particles");
+const ctx=canvas.getContext("2d");
+canvas.width=window.innerWidth;
+canvas.height=window.innerHeight;
+window.addEventListener("resize", resizeCanvas);
+
+function resizeCanvas(){
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+let particles=[];
+for(let i=0;i<420;i++){
+particles.push({
+x:Math.random()*canvas.width,
+y:Math.random()*canvas.height,
+r:Math.random()*2,
+dx:(Math.random()-0.5),
+dy:(Math.random()-0.5)
+});
+}
+function animate(){
+ctx.clearRect(0,0,canvas.width,canvas.height);
+particles.forEach(p=>{
+ctx.beginPath();
+ctx.arc(p.x,p.y,p.r,0,2*Math.PI);
+ctx.fillStyle="#6366f1";
+ctx.fill();
+p.x+=p.dx;
+p.y+=p.dy;
+
+/* Re-spawn star if out of bounds */
+if(p.x<0 || p.x>canvas.width || p.y<0 || p.y>canvas.height){
+    p.x=Math.random()*canvas.width;
+    p.y=Math.random()*canvas.height;
+}
+});
+requestAnimationFrame(animate);
+}
+animate();
+
+/* LAB LOGIC */
+let lab={
+components:[],
+voltage:0,
+totalResistance:0,
+isOn:false,
+fuseBlown:false,
+fuseRating:null
+};
+
+const slotsDiv=document.getElementById("slots");
+const slotWrapper=document.getElementById("slotWrapper");
+const logBox=document.getElementById("logBox");
+const powerBtn=document.getElementById("powerBtn");
+
+function autoScroll(){
+slotWrapper.scrollTo({left:slotWrapper.scrollWidth,behavior:"smooth"});
+}
+
+function log(msg){
+const time=new Date().toLocaleTimeString();
+const div=document.createElement("div");
+div.innerText=`[${time}] ${msg}`;
+logBox.appendChild(div);
+logBox.scrollTop=logBox.scrollHeight;
+}
+
+function addComponent(icon,type,value){
+const div=document.createElement("div");
+div.className="component-slot glass";
+div.innerHTML=`
+<span class="text-4xl">${icon}</span>
+<span class="text-xs mt-1">${type}</span>
+<span class="text-xs opacity-70">${value}</span>
+`;
+slotsDiv.appendChild(div);
+lab.components.push({type,value,element:div});
+autoScroll();
+}
+
+function addBattery(){
+const v=parseFloat(voltageInput.value);
+
+lab.voltage += v;  // <--- add instead of replace
+
+addComponent("🔋","Battery",v+" V");
+log("Battery Added: "+v+"V | Total: "+lab.voltage+"V");
+}
+
+function addResistor(){
+const r=parseFloat(resistanceInput.value);
+lab.totalResistance+=r;
+addComponent("📟","Resistor",r+" Ω");
+log("Resistor: "+r+"Ω");
+}
+
+function addBulb(){
+const r=parseFloat(loadInput.value);
+lab.totalResistance+=r;
+addComponent("💡","Load",r+" Ω");
+log("Load: "+r+"Ω");
+}
+
+function addFuse(){
+const rating=parseFloat(fuseInput.value);
+lab.fuseRating=rating;
+addComponent("🔌","Fuse",rating+" A");
+log("Fuse rating: "+rating+"A");
+}
+
+function togglePower(){
+if(lab.fuseBlown)return;
+lab.isOn=!lab.isOn;
+updateCircuit();
+}
+
+function updateCircuit(){
+let current=0;
+
+if(lab.isOn && lab.totalResistance>0){
+current=lab.voltage/lab.totalResistance;
+
+if(lab.fuseRating && current>lab.fuseRating){
+lab.fuseBlown=true;
+lab.isOn=false;
+log("Fuse Blown! Current exceeded "+lab.fuseRating+"A");
+current=0;
+}
+}
+
+voltageMeter.innerText=(lab.isOn?lab.voltage:0).toFixed(2)+" V";
+currentMeter.innerText=current.toFixed(2)+" A";
+wire.classList.toggle("wire-flow",lab.isOn);
+
+lab.components.forEach(c=>{
+
+const icon = c.element.querySelector("span");
+
+/* BULB */
+if(c.type==="Load"){
+    if(lab.isOn && current>0){
+        icon.classList.add("bulb-dynamic");
+        icon.style.filter=`drop-shadow(0 0 ${40*current}px yellow)`;
+    }else{
+        icon.classList.remove("bulb-dynamic");
+        icon.style.filter="none";
+    }
+}
+
+/* RESISTOR */
+if(c.type==="Resistor"){
+    if(lab.isOn && current>0){
+        icon.classList.add("resistor-on");
+        icon.style.filter=`drop-shadow(0 0 ${25*current}px orange)`;
+    }else{
+        icon.classList.remove("resistor-on");
+        icon.style.filter="none";
+    }
+}
+
+/* BATTERY */
+if(c.type==="Battery"){
+    if(lab.isOn){
+        icon.classList.add("battery-on");
+    }else{
+        icon.classList.remove("battery-on");
+    }
+}
+
+/* FUSE */
+if(c.type==="Fuse"){
+    if(lab.isOn && !lab.fuseBlown){
+        icon.classList.add("fuse-on");
+    }else{
+        icon.classList.remove("fuse-on");
+    }
+}
+
+});
+
+if(lab.isOn){
+    powerBtn.style.background="#22c55e";
+    powerBtn.style.color="white";
+    powerBtn.classList.add("power-active");
+}else{
+    powerBtn.style.background="white";
+    powerBtn.style.color="black";
+    powerBtn.classList.remove("power-active");
+}
+}
+
+function recordData(){
+log(`Recorded → V=${lab.voltage}V | R=${lab.totalResistance}Ω | I=${(lab.totalResistance?lab.voltage/lab.totalResistance:0).toFixed(2)}A`);
+}
+
+</script>
+</body>
+</html>
